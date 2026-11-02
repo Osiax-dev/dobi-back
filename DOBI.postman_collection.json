@@ -1,0 +1,3616 @@
+{
+  "info": {
+    "name": "DOBI API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Lancer les dossiers dans l'ordre (Collection Runner). Le token est enregistré automatiquement."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000/api/v1"
+    },
+    {
+      "key": "password",
+      "value": "Dobi2026test"
+    }
+  ],
+  "item": [
+    {
+      "name": "0 - Santé",
+      "item": [
+        {
+          "name": "Ping",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/ping",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ping"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1 - Authentification",
+      "item": [
+        {
+          "name": "Inscription (nouveau compte de test)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Testeur DOBI\",\n  \"email\": \"test{{$timestamp}}@example.com\",\n  \"password\": \"{{password}}\",\n  \"password_confirmation\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set(\"token\", j.token);",
+                  "pm.collectionVariables.set(\"email\", j.user.email);",
+                  "pm.collectionVariables.set(\"org_id\", j.organization.id);",
+                  "pm.collectionVariables.set(\"org_slug\", j.organization.slug);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Inscription invalide (mot de passe faible) → 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"X\",\n  \"email\": \"faible@example.com\",\n  \"password\": \"abc\",\n  \"password_confirmation\": \"abc\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Connexion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set(\"token\", j.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Connexion avec mauvais mot de passe → 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"MauvaisMdp1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mon profil",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sans token → 401",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mot de passe oublié",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/forgot-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2 - Organisations et membres",
+      "item": [
+        {
+          "name": "Mes organisations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/organizations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "organizations"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Créer une organisation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/organizations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "organizations"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Association Test\",\n  \"type\": \"association\",\n  \"description\": \"Organisation de test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set(\"org2_id\", j.id);",
+                  "pm.collectionVariables.set(\"org2_slug\", j.slug);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Voir une organisation",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/organizations/{{org_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "organizations",
+                "{{org_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Modifier une organisation",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/organizations/{{org2_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "organizations",
+                "{{org2_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Description modifiée\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Inscrire un 2e utilisateur (sans toucher au token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Analyste Test\",\n  \"email\": \"analyste{{$timestamp}}@example.com\",\n  \"password\": \"{{password}}\",\n  \"password_confirmation\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set(\"member_email\", j.user.email);",
+                  "pm.collectionVariables.set(\"member_id\", j.user.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ajouter un membre (analyste)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/organizations/{{org2_id}}/members",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "organizations",
+                "{{org2_id}}",
+                "members"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{member_email}}\",\n  \"role\": \"analyst\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Espace personnel : ajout de membre refusé → 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/organizations/{{org_id}}/members",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "organizations",
+                "{{org_id}}",
+                "members"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{member_email}}\",\n  \"role\": \"analyst\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Changer son rôle (éditeur)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/organizations/{{org2_id}}/members/{{member_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "organizations",
+                "{{org2_id}}",
+                "members",
+                "{{member_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"editor\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lister les membres",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/organizations/{{org2_id}}/members",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "organizations",
+                "{{org2_id}}",
+                "members"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3 - Études",
+      "item": [
+        {
+          "name": "Créer une étude",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/organizations/{{org_id}}/studies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "organizations",
+                "{{org_id}}",
+                "studies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Satisfaction des étudiants\",\n  \"description\": \"Enquête sur les services du campus\",\n  \"objective\": \"Améliorer les services\",\n  \"category\": \"Éducation\",\n  \"target_population\": \"Étudiants\",\n  \"geographic_zone\": \"Parakou\",\n  \"collection_mode\": \"classic\",\n  \"privacy_mode\": \"anonymous\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set(\"study_id\", j.id);",
+                  "pm.collectionVariables.set(\"study_slug\", j.slug);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Voir l'étude",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Modifier l'étude",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Description mise à jour\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lister les études de l'organisation",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/organizations/{{org_id}}/studies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "organizations",
+                "{{org_id}}",
+                "studies"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publier sans question → 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/publish",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "publish"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4 - Constructeur de questionnaire",
+      "item": [
+        {
+          "name": "Créer une section",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/sections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "sections"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Vie sur le campus\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set(\"section_id\", j.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Q1 - Oui/Non (obligatoire)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/questions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "questions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"yes_no\",\n  \"label\": \"Utilisez-vous la bibliothèque ?\",\n  \"required\": true,\n  \"section_id\": \"{{section_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set(\"q1_id\", j.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Q2 - Texte (visible si Q1 = oui)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/questions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "questions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"short_text\",\n  \"label\": \"Que pensez-vous de la bibliothèque ?\",\n  \"required\": true,\n  \"section_id\": \"{{section_id}}\",\n  \"rules\": [\n    {\n      \"source_question_id\": \"{{q1_id}}\",\n      \"operator\": \"equals\",\n      \"value\": \"true\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set(\"q2_id\", j.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Q3 - Choix unique",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/questions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "questions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"single_choice\",\n  \"label\": \"Votre filière ?\",\n  \"required\": false,\n  \"options\": [\n    {\n      \"label\": \"Informatique\"\n    },\n    {\n      \"label\": \"Gestion\"\n    },\n    {\n      \"label\": \"Autre\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set(\"q3_id\", j.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Q4 - Échelle 1 à 5",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/questions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "questions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"scale\",\n  \"label\": \"Note globale du campus\",\n  \"required\": false,\n  \"settings\": {\n    \"min\": 1,\n    \"max\": 5\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set(\"q4_id\", j.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Modifier Q3 : ajouter un choix (valeurs conservées)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/questions/{{q3_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "questions",
+                "{{q3_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Votre filière ?\",\n  \"options\": [\n    {\n      \"label\": \"Informatique\",\n      \"value\": \"opt_1\"\n    },\n    {\n      \"label\": \"Gestion\",\n      \"value\": \"opt_2\"\n    },\n    {\n      \"label\": \"Autre\",\n      \"value\": \"opt_3\"\n    },\n    {\n      \"label\": \"Droit\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const o = pm.response.json().options;",
+                  "pm.test(\"4 choix, nouvelle valeur opt_4\", () => { pm.expect(o.length).to.eql(4); pm.expect(o[3].value).to.eql(\"opt_4\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dupliquer Q4",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/questions/{{q4_id}}/duplicate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "questions",
+                "{{q4_id}}",
+                "duplicate"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set(\"q5_id\", j.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Supprimer la copie",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/questions/{{q5_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "questions",
+                "{{q5_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Type de question interdit (file) → 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/questions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "questions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"file\",\n  \"label\": \"Joindre un fichier\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Voir le questionnaire",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/questionnaire",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "questionnaire"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Réorganiser",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/reorder",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "reorder"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questions\": [\n    \"{{q1_id}}\",\n    \"{{q2_id}}\",\n    \"{{q3_id}}\",\n    \"{{q4_id}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5 - Publication",
+      "item": [
+        {
+          "name": "Publier",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/publish",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "publish"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6 - Public (sans compte)",
+      "item": [
+        {
+          "name": "Page publique de l'organisation",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/public/organizations/{{org_slug}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "public",
+                "organizations",
+                "{{org_slug}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Voir l'étude publique",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/public/studies/{{study_slug}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "public",
+                "studies",
+                "{{study_slug}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Soumettre une réponse valide",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/public/studies/{{study_slug}}/responses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "public",
+                "studies",
+                "{{study_slug}}",
+                "responses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": {\n    \"{{q1_id}}\": true,\n    \"{{q2_id}}\": \"Très bien équipée\",\n    \"{{q3_id}}\": \"opt_1\",\n    \"{{q4_id}}\": 4\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Soumettre une 2e réponse valide (Q1 = non)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/public/studies/{{study_slug}}/responses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "public",
+                "studies",
+                "{{study_slug}}",
+                "responses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": {\n    \"{{q1_id}}\": false,\n    \"{{q3_id}}\": \"opt_2\",\n    \"{{q4_id}}\": 5\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Réponse avec jeton de synchronisation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/public/studies/{{study_slug}}/responses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "public",
+                "studies",
+                "{{study_slug}}",
+                "responses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_token\": \"{{sync_token}}\",\n  \"version\": 1,\n  \"answers\": {\n    \"{{q1_id}}\": true,\n    \"{{q2_id}}\": \"Envoyée hors ligne\",\n    \"{{q3_id}}\": \"opt_1\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"sync_token\", \"postman-\" + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set(\"sync_receipt\", j.receipt);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Renvoi du même jeton → 200, même numéro, pas de doublon",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/public/studies/{{study_slug}}/responses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "public",
+                "studies",
+                "{{study_slug}}",
+                "responses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_token\": \"{{sync_token}}\",\n  \"version\": 1,\n  \"answers\": {\n    \"{{q1_id}}\": true,\n    \"{{q2_id}}\": \"Envoyée hors ligne\",\n    \"{{q3_id}}\": \"opt_1\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"Même numéro de réception\", () => pm.expect(j.receipt).to.eql(pm.collectionVariables.get(\"sync_receipt\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Version de questionnaire inconnue → 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/public/studies/{{study_slug}}/responses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "public",
+                "studies",
+                "{{study_slug}}",
+                "responses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": 999,\n  \"answers\": {\n    \"{{q1_id}}\": true\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Réponse invalide (choix inconnu) → 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/public/studies/{{study_slug}}/responses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "public",
+                "studies",
+                "{{study_slug}}",
+                "responses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": {\n    \"{{q1_id}}\": true,\n    \"{{q2_id}}\": \"ok\",\n    \"{{q3_id}}\": \"zzz\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Réponse à une question masquée → 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/public/studies/{{study_slug}}/responses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "public",
+                "studies",
+                "{{study_slug}}",
+                "responses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": {\n    \"{{q1_id}}\": false,\n    \"{{q2_id}}\": \"ne devrait pas être là\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Question obligatoire manquante → 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/public/studies/{{study_slug}}/responses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "public",
+                "studies",
+                "{{study_slug}}",
+                "responses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": {\n    \"{{q3_id}}\": \"opt_1\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6b - Étude identifiée",
+      "item": [
+        {
+          "name": "Créer une étude identifiée",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/organizations/{{org_id}}/studies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "organizations",
+                "{{org_id}}",
+                "studies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Étude identifiée de test\",\n  \"privacy_mode\": \"identified\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set(\"study2_id\", j.id);",
+                  "pm.collectionVariables.set(\"study2_slug\", j.slug);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ajouter une question",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study2_id}}/questions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study2_id}}",
+                "questions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"short_text\",\n  \"label\": \"Votre avis ?\",\n  \"required\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set(\"s2q1\", j.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publier",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study2_id}}/publish",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study2_id}}",
+                "publish"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Participer sans consentement → 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/public/studies/{{study2_slug}}/responses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "public",
+                "studies",
+                "{{study2_slug}}",
+                "responses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": {\n    \"{{s2q1}}\": \"Bien\"\n  },\n  \"participant\": {\n    \"full_name\": \"Aminata Test\",\n    \"email\": \"aminata@example.com\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Participer avec consentement",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/public/studies/{{study2_slug}}/responses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "public",
+                "studies",
+                "{{study2_slug}}",
+                "responses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": {\n    \"{{s2q1}}\": \"Bien\"\n  },\n  \"participant\": {\n    \"full_name\": \"Aminata Test\",\n    \"email\": \"aminata@example.com\"\n  },\n  \"consent\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export avec identité (propriétaire)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study2_id}}/exports",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study2_id}}",
+                "exports"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Identité présente dans l'export\", () => pm.expect(pm.response.text()).to.include(\"Aminata Test\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Liste des participants (propriétaire)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study2_id}}/participants",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study2_id}}",
+                "participants"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "const p = j.participants.data;",
+                  "pm.test(\"Participant et consentement\", () => { pm.expect(p[0].full_name).to.eql(\"Aminata Test\"); pm.expect(!!p[0].consent_accepted).to.eql(true); });",
+                  "pm.collectionVariables.set(\"p_uuid\", p[0].uuid);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Participants d'une étude anonyme → 422",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/participants",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "participants"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Participation de l'espace",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/organizations/{{org_id}}/participation",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "organizations",
+                "{{org_id}}",
+                "participation"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Anonymiser un participant",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study2_id}}/participants/{{p_uuid}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study2_id}}",
+                "participants",
+                "{{p_uuid}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Déjà anonymisé → 422",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study2_id}}/participants/{{p_uuid}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study2_id}}",
+                "participants",
+                "{{p_uuid}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Liste vide après anonymisation",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study2_id}}/participants",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study2_id}}",
+                "participants"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Aucun participant\", () => pm.expect(pm.response.json().participants.data.length).to.eql(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Étude anonyme : identité refusée → 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/public/studies/{{study_slug}}/responses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "public",
+                "studies",
+                "{{study_slug}}",
+                "responses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": {},\n  \"participant\": {\n    \"full_name\": \"X\",\n    \"email\": \"x@example.com\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7 - Résultats",
+      "item": [
+        {
+          "name": "Statistiques",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/analytics",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "analytics"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set(\"version_id\", j.versions[0].id);",
+                  "pm.test(\"Taux de réponse par question\", () => pm.expect(j.questions[0]).to.have.property(\"response_rate\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Statistiques d'une version",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/analytics?version={{version_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "analytics"
+              ],
+              "query": [
+                {
+                  "key": "version",
+                  "value": "{{version_id}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Comparer selon Q3 (filière)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/analytics?by={{q3_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "analytics"
+              ],
+              "query": [
+                {
+                  "key": "by",
+                  "value": "{{q3_id}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"Comparaison présente\", () => pm.expect(j.compare.groups.length).to.be.above(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Comparer selon une question texte → 422",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/analytics?by={{q2_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "analytics"
+              ],
+              "query": [
+                {
+                  "key": "by",
+                  "value": "{{q2_id}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtre de dates sans résultat",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/analytics?from=2000-01-01&to=2000-01-02",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "analytics"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2000-01-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2000-01-02"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test(\"Aucune réponse\", () => pm.expect(j.totals.responses).to.eql(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Date invalide → 422",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/analytics?from=abc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "analytics"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "abc"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export CSV",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/exports",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "exports"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export Excel (.xlsx)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/exports?format=xlsx",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "exports"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "xlsx"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Fichier Excel\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"spreadsheetml\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Format d'export inconnu → 422",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/exports?format=doc",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "exports"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "doc"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tableau de bord de l'espace",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/organizations/{{org_id}}/dashboard",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "organizations",
+                "{{org_id}}",
+                "dashboard"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "8 - Cycle de vie",
+      "item": [
+        {
+          "name": "Dupliquer l'étude",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/duplicate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "duplicate"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Suspendre",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/suspend",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "suspend"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Étude suspendue : invisible au public → 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/public/studies/{{study_slug}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "public",
+                "studies",
+                "{{study_slug}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reprendre (sans nouvelle version)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/resume",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "resume"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Version inchangée\", () => pm.expect(pm.response.json().version_number).to.eql(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Étude reprise : visible au public",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/public/studies/{{study_slug}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "public",
+                "studies",
+                "{{study_slug}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reprendre une étude déjà publiée → 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/resume",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "resume"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Suspendre à nouveau",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/suspend",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "suspend"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Republier (version 2)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/publish",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "publish"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Version 2\", () => pm.expect(pm.response.json().version_number).to.eql(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Clôturer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/close",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "close"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Étude clôturée → 410",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/public/studies/{{study_slug}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "public",
+                "studies",
+                "{{study_slug}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 410\", () => pm.response.to.have.status(410));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Republier après clôture (version 3)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/publish",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "publish"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Clôturer à nouveau",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/close",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "close"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Archiver",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/archive",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "archive"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Modifier une étude archivée → 422",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Ne doit pas passer\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ajouter une question à une étude archivée → 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/questions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "questions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"short_text\",\n  \"label\": \"Interdit\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Restaurer (retour à « clôturée »)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/restore",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "restore"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Statut restauré\", () => pm.expect(pm.response.json().status).to.eql(\"closed\"));",
+                  "pm.test(\"Réponses conservées\", () => pm.expect(pm.response.json().responses_count).to.be.above(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Historique (versions et activité)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/studies/{{study_id}}/history",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "studies",
+                "{{study_id}}",
+                "history"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "9 - Déconnexion",
+      "item": [
+        {
+          "name": "Déconnexion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Statut 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
