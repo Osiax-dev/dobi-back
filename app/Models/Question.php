@@ -8,13 +8,20 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Question extends Model
 {
-    /** Le type "file" est volontairement absent : téléversement désactivé par défaut (cahier des charges §9). */
+    /**
+     * Types disponibles. « number » et « location » sont conservés pour les anciennes études.
+     * Le type « file » (image / pièce jointe) viendra avec un stockage privé sécurisé.
+     */
     public const TYPES = [
-        'short_text', 'long_text', 'single_choice', 'multiple_choice',
-        'yes_no', 'number', 'date', 'scale', 'location',
+        'short_text', 'long_text', 'integer', 'decimal', 'number',
+        'single_choice', 'dropdown', 'multiple_choice', 'yes_no',
+        'date', 'time', 'datetime', 'scale', 'location', 'geolocation', 'note',
     ];
 
-    public const CHOICE_TYPES = ['single_choice', 'multiple_choice'];
+    public const CHOICE_TYPES = ['single_choice', 'dropdown', 'multiple_choice'];
+
+    /** Types qui ne peuvent pas servir de question de référence pour une condition. */
+    public const NON_REFERENCEABLE = ['note', 'geolocation'];
 
     protected $fillable = ['study_id', 'section_id', 'type', 'label', 'description', 'required', 'position', 'settings'];
 

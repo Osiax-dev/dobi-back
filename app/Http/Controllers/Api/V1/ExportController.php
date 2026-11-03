@@ -19,7 +19,10 @@ class ExportController extends Controller
         $request->validate(ResponseFilters::rules() + ['format' => ['nullable', 'in:csv,xlsx']]);
 
         $format = $request->query('format', 'csv');
-        $questions = $study->currentVersion?->snapshot['questions'] ?? [];
+        $questions = array_values(array_filter(
+            $study->currentVersion?->snapshot['questions'] ?? [],
+            fn ($q) => $q['type'] !== 'note' // les textes informatifs n'ont pas de réponse
+        ));
         $withIdentity = $study->privacy_mode === 'identified' && $request->user()->can('viewIdentity', $study);
 
         $header = ['id_reponse', 'date', 'version'];
@@ -89,10 +92,14 @@ class ExportController extends Controller
         if (is_bool($value)) {
             return $value ? 'Oui' : 'Non';
         }
+        if (is_array($value) && isset($value['lat'], $value['lng'])) {
+            return $value['lat'].', '.$value['lng']; // géolocalisation
+        }
         if (is_array($value)) {
-            return $this->text(implode(' | ', array_map(fn ($v) => $labels[$v] ?? (string) $v, $value)), $csv);
+            return $this->text(implode(' | ', array_map(fn ($v) => is_string($v) && str_starts_with($v, '__dobi_other__:') ? 'Autre : '.substr($v, 15) : ($labels[$v] ?? (string) $v), $value)), $csv);
         }
         if (is_string($value)) {
+            if (str_starts_with($value, '__dobi_other__:')) return $this->text('Autre : '.substr($value, 15), $csv);
             return $this->text($labels[$value] ?? $value, $csv);
         }
 

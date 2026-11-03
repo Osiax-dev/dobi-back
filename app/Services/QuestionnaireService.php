@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Question;
 use App\Models\Section;
+use App\Models\SectionRule;
 use App\Models\Study;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -29,10 +30,18 @@ class QuestionnaireService
     public function tree(Study $study): array
     {
         return [
-            'sections' => $study->sections()->get()->map(fn (Section $s) => [
-                'id' => $s->id, 'title' => $s->title, 'description' => $s->description, 'position' => $s->position,
-            ])->all(),
+            'sections' => $study->sections()->with('rules')->get()->map(fn (Section $s) => $this->sectionArray($s))->all(),
             'questions' => $this->orderedQuestions($study)->map(fn (Question $q) => $this->questionArray($q))->all(),
+        ];
+    }
+
+    public function sectionArray(Section $s): array
+    {
+        return [
+            'id' => $s->id, 'title' => $s->title, 'description' => $s->description, 'position' => $s->position,
+            'rules' => $s->rules->map(fn ($r) => [
+                'source_question_id' => $r->source_question_id, 'operator' => $r->operator, 'value' => $r->value,
+            ])->values()->all(),
         ];
     }
 
@@ -74,6 +83,8 @@ class QuestionnaireService
 
         if ($questions->isEmpty()) {
             $errors['questions'][] = 'Ajoutez au moins une question avant de publier.';
+        } elseif ($questions->every(fn ($q) => $q->type === 'note')) {
+            $errors['questions'][] = 'Ajoutez au moins une question à laquelle le participant peut répondre.';
         }
 
         $position = [];
@@ -88,6 +99,16 @@ class QuestionnaireService
             foreach ($q->rules as $rule) {
                 if (! isset($position[$rule->source_question_id]) || $position[$rule->source_question_id] >= $index) {
                     $errors['questions'][] = "La condition de la question « {$q->label} » doit dépendre d'une question située avant elle.";
+                }
+            }
+        }
+
+        // Une condition sur une étape doit dépendre d'une question située avant la première question de l'étape.
+        foreach ($study->sections()->with('rules')->get() as $section) {
+            $first = $questions->search(fn ($q) => $q->section_id === $section->id);
+            foreach ($section->rules as $rule) {
+                if ($first !== false && (! isset($position[$rule->source_question_id]) || $position[$rule->source_question_id] >= $first)) {
+                    $errors['sections'][] = "La condition de l'étape « {$section->title} » doit dépendre d'une question située avant cette étape.";
                 }
             }
         }
@@ -133,6 +154,18 @@ class QuestionnaireService
                     if (isset($questionMap[$r->source_question_id])) {
                         $new = Question::find($questionMap[$q->id]);
                         $new->rules()->create([
+                            'source_question_id' => $questionMap[$r->source_question_id],
+                            'operator' => $r->operator, 'value' => $r->value,
+                        ]);
+                    }
+                }
+            }
+
+            foreach ($study->sections()->with('rules')->get() as $section) {
+                foreach ($section->rules as $r) {
+                    if (isset($sectionMap[$section->id], $questionMap[$r->source_question_id])) {
+                        SectionRule::create([
+                            'section_id' => $sectionMap[$section->id],
                             'source_question_id' => $questionMap[$r->source_question_id],
                             'operator' => $r->operator, 'value' => $r->value,
                         ]);

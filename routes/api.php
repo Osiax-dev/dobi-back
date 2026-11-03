@@ -74,6 +74,7 @@ Route::prefix('v1')->group(function () {
         Route::put('sections/{section}', [QuestionnaireController::class, 'updateSection']);
         Route::delete('sections/{section}', [QuestionnaireController::class, 'destroySection']);
         Route::post('studies/{study}/questions', [QuestionnaireController::class, 'storeQuestion']);
+        Route::put('studies/{study}/layout', [QuestionnaireController::class, 'layout']);
         Route::post('studies/{study}/reorder', [QuestionnaireController::class, 'reorder']);
         Route::post('questions/{question}/duplicate', [QuestionnaireController::class, 'duplicateQuestion']);
         Route::put('questions/{question}', [QuestionnaireController::class, 'updateQuestion']);
