@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(prepend: [ForceJson::class]);
         // Global : couvre aussi les erreurs (401, 403, 404, 429...) levées avant la fin du groupe « api ».
         $middleware->append(SecurityHeaders::class);
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
