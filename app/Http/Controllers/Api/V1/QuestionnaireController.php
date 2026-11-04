@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Answer;
 use App\Models\Question;
 use App\Models\QuestionRule;
 use App\Models\Section;
+use App\Models\SectionRule;
+use App\Support\Notifier;
 use App\Models\Study;
 use App\Services\QuestionnaireService;
 use Illuminate\Http\JsonResponse;
@@ -209,6 +212,8 @@ class QuestionnaireController extends Controller
             return $question;
         });
 
+        Notifier::notify($study->organization_id, $request->user(), 'question.created', $study);
+
         return response()->json($this->questionnaires->questionArray($question->load(['options', 'rules'])), 201);
     }
 
@@ -219,16 +224,51 @@ class QuestionnaireController extends Controller
         $this->guard($study);
         $data = $request->validate($this->questionRules($study, $question));
         $this->checkSettings($data['type'] ?? $question->type, $data['settings'] ?? []);
-        if (($data['type'] ?? $question->type) === 'note') {
+        $newType = $data['type'] ?? $question->type;
+        if ($newType !== $question->type) {
+            $this->assertTypeChangeAllowed($question, $newType);
+        }
+        if ($newType === 'note') {
             $data['required'] = false;
         }
 
-        DB::transaction(function () use ($question, $data) {
+        DB::transaction(function () use ($question, $data, $newType) {
             $question->update(array_intersect_key($data, array_flip(['section_id', 'type', 'label', 'description', 'required', 'settings'])));
             $this->syncOptionsAndRules($question, $data);
+            if (! in_array($newType, Question::CHOICE_TYPES, true)) {
+                $question->options()->delete(); // un type sans choix ne garde pas d'anciens choix
+            }
         });
 
+        Notifier::notify($study->organization_id, $request->user(), 'question.updated', $study);
+
         return response()->json($this->questionnaires->questionArray($question->fresh()->load(['options', 'rules'])));
+    }
+
+    /** Types dont les réponses déjà reçues restent lisibles après un changement de l'un vers l'autre. */
+    private const COMPATIBLE_TYPES = [
+        ['short_text', 'long_text'],
+        ['integer', 'decimal', 'number'],
+        ['single_choice', 'dropdown'],
+    ];
+
+    /** Changer le type est libre tant qu'aucune réponse n'existe ; ensuite, seulement entre types compatibles. */
+    private function assertTypeChangeAllowed(Question $question, string $newType): void
+    {
+        if (in_array($newType, Question::NON_REFERENCEABLE, true)
+            && (QuestionRule::where('source_question_id', $question->id)->exists()
+                || SectionRule::where('source_question_id', $question->id)->exists())) {
+            throw ValidationException::withMessages(['type' => ['Des conditions dépendent de cette question : retirez-les avant de la transformer en texte informatif ou en position.']]);
+        }
+
+        if (Answer::where('question_id', $question->id)->exists()) {
+            foreach (self::COMPATIBLE_TYPES as $family) {
+                if (in_array($question->type, $family, true) && in_array($newType, $family, true)) {
+                    return;
+                }
+            }
+            throw ValidationException::withMessages(['type' => ['Cette question a déjà reçu des réponses : son type ne peut être changé que vers un type compatible (texte court ou long, nombres, choix unique ou liste). Sinon, ajoutez une nouvelle question.']]);
+        }
     }
 
     /** Copie une question (choix et conditions compris) juste après l'originale. */
@@ -264,11 +304,13 @@ class QuestionnaireController extends Controller
         return response()->json($this->questionnaires->questionArray($copy->load(['options', 'rules'])), 201);
     }
 
-    public function destroyQuestion(Question $question): JsonResponse
+    public function destroyQuestion(Request $request, Question $question): JsonResponse
     {
-        $this->authorize('update', $question->study);
-        $this->guard($question->study);
+        $study = $question->study;
+        $this->authorize('update', $study);
+        $this->guard($study);
         $question->delete();
+        Notifier::notify($study->organization_id, $request->user(), 'question.deleted', $study);
 
         return response()->json(['message' => 'Question supprimée.']);
     }

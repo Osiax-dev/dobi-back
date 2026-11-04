@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\ParticipantController;
 use App\Http\Controllers\Api\V1\PublicStudyController;
 use App\Http\Controllers\Api\V1\QuestionnaireController;
 use App\Http\Controllers\Api\V1\StudyAssignmentController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\StudyController;
 use App\Http\Controllers\Api\V1\TemplateController;
 use App\Http\Middleware\EnsureEmailVerified;
@@ -52,6 +53,11 @@ Route::prefix('v1')->group(function () {
         Route::post('me/logout-others', [AuthController::class, 'logoutOthers']);
         Route::put('me/email', [AuthController::class, 'requestEmailChange'])->middleware('throttle:verification');
         Route::delete('me', [AuthController::class, 'destroyMe']);
+
+        // Alertes (cloche)
+        Route::get('notifications', [NotificationController::class, 'index']);
+        Route::post('notifications/read-all', [NotificationController::class, 'readAll']);
+        Route::post('notifications/{id}/read', [NotificationController::class, 'read'])->whereNumber('id');
 
         // Organisations et membres
         Route::get('organizations', [OrganizationController::class, 'index']);

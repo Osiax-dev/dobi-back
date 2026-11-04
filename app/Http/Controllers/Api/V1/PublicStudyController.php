@@ -9,6 +9,7 @@ use App\Models\Organization;
 use App\Models\ParticipantIdentifier;
 use App\Models\Study;
 use App\Models\Submission;
+use App\Support\Notifier;
 use App\Support\SubmissionValidator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -181,6 +182,8 @@ class PublicStudyController extends Controller
 
             return $submission;
         });
+
+        Notifier::notify($study->organization_id, null, 'response.received', $study);
 
         return response()->json([
             'message' => 'Merci, votre réponse a été enregistrée.',

@@ -21,5 +21,7 @@ final class AuditLogger
             'ip_address' => request()?->ip(),
             'created_at' => now(),
         ]);
+
+        Notifier::fromAudit($user, $action, $entity, $organizationId, $metadata);
     }
 }
