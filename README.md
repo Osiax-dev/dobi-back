@@ -105,4 +105,5 @@ Un questionnaire est versionné : chaque publication fige une version, et les r�
 
 ## Auteur
 
-Osiax Tcheoubi, Licence Professionnelle en Informatique de Gestion, IUT de Parakou (Bénin).
+Osiax Tcheoubi,Développeur web full-stack et intégrateur web
+Licence Professionnelle en Informatique de Gestion, (Bénin).
