@@ -1,64 +1,108 @@
-# DOBI — Backend (API Laravel 12 + MySQL)
+# DOBI
 
-Ce zip contient **uniquement les fichiers de DOBI** à poser par-dessus un Laravel 12 neuf.
-Prérequis : PHP 8.2+, Composer, MySQL (XAMPP convient), Postman.
+DOBI est une plateforme pour créer des questionnaires, les publier, collecter les réponses et les analyser. Le projet est né d'un besoin simple : pouvoir mener une enquête sur le terrain, même avec une connexion instable, sans dépendre d'un outil étranger payant.
 
-## Installation (une seule fois)
+Le projet est en deux parties :
+
+- **API** : Laravel 13 (PHP 8.4), base MariaDB/MySQL, authentification par jeton (Sanctum). Dépôt actuel.
+- **Front** : React 18 + Vite + Tailwind, hébergé sur Vercel. Il parle à l'API en JSON.
+
+Production : front sur https://dobi-sand.vercel.app, API sur https://dobi.alwaysdata.net.
+
+## Ce que fait DOBI
+
+- Création de questionnaires par étapes, avec 15 types de questions, des règles d'affichage (une étape peut dépendre d'une réponse) et l'option « Autre ».
+- Publication par lien public ou QR code, avec réponse unique par personne si on le souhaite.
+- Collecte sur le terrain par des enquêteurs, avec file d'attente hors ligne (les réponses sont envoyées au retour du réseau).
+- Résultats, tableau de bord et suivi de la participation ; export CSV et Excel avec une colonne « Enquêteur ».
+- Espaces de travail (organisations) avec cinq rôles : propriétaire, administrateur, éditeur, enquêteur, analyste. Chaque rôle n'accède qu'à ce qui le concerne.
+- Invitations de membres par e-mail, attribution des enquêteurs par étude, transfert de propriété d'une organisation.
+- Modèles de questionnaires réutilisables (trois modèles intégrés : satisfaction, ménages, événement).
+- Compte : inscription avec confirmation de l'e-mail, mot de passe oublié, changement d'adresse, déconnexion des autres appareils, suppression du compte.
+
+## Lancer le projet en local
+
+### API
+
+Prérequis : PHP 8.4, Composer, MySQL ou MariaDB.
 
 ```bash
-# 1. Projet Laravel vide
-composer create-project laravel/laravel dobi-api
-cd dobi-api
-
-# 2. Sanctum + fichier routes/api.php  (répondre "no" si on propose de lancer les migrations)
-php artisan install:api
-
-# 3. Copier le contenu de ce zip DANS le dossier dobi-api (accepter d'écraser les fichiers)
-#    -> bootstrap/app.php, config/, routes/api.php, app/, database/ ...
-
-# 4. Ouvrir env-a-ajouter.txt et reporter ses lignes dans .env
-#    (DB_DATABASE, DOBI_ADMIN_PASSWORD, FRONTEND_URL...)
-
-# 5. Clé + vérification de la base
+composer install
+cp .env.example .env
 php artisan key:generate
-php artisan db:show
-
-# 6. Tables + compte administrateur
+# renseigner la base de données dans .env, puis :
 php artisan migrate
-php artisan db:seed
-
-# 7. Lancer
-php artisan serve
+php artisan serve --port=8001
 ```
 
-## Vérifications
+Variables importantes du `.env` :
+
+| Variable | Rôle |
+|---|---|
+| `APP_URL` | URL de l'API (sert aux liens signés des e-mails) |
+| `FRONTEND_URL` | URL du front, sans `/` final (liens des e-mails et CORS) |
+| `MAIL_MAILER` et `MAIL_*` | Envoi des e-mails (`log` en local, `smtp` en production) |
+| `TRUSTED_PROXIES` | À mettre à `*` derrière un proxy en production |
+
+Ne jamais ajouter le `.env` au dépôt.
+
+### Front
+
+Prérequis : Node 22.
 
 ```bash
-php tests/validator_smoke.php        # règles de validation des réponses (sans base)
-php artisan route:list --path=api    # toutes les routes /api/v1
+npm install
+# créer un fichier .env avec :
+# VITE_API_URL=http://127.0.0.1:8001/api/v1
+npm run dev
 ```
 
-Puis dans Postman : **Import → DOBI.postman_collection.json**, puis *Run collection* (dossiers dans l'ordre 0 → 9).
-Chaque requête vérifie son code HTTP attendu (200/201/401/404/410/422). Le token est enregistré tout seul.
+## Tests
 
-## Base de données
+```bash
+php artisan config:clear
+php artisan test      # API : tests sur SQLite en mémoire
 
-La migration `2026_11_01_000001_create_dobi_tables.php` crée les tables du cahier des charges
-(organizations, organization_members, studies, study_versions, sections, questions, question_options,
-question_rules, responses, answers, participant_identifiers, consents, audit_logs) et saute celles qui existent déjà.
-**Si votre base `dobi` contient déjà des tables avec une autre structure, ne lancez pas `migrate` :
-envoyez la structure pour adapter les modèles.**
+npm test              # front
+```
 
-## Règles importantes
+Les tests de l'API refusent de tourner sur une autre base que SQLite, pour ne pas toucher aux vraies données. Une intégration continue GitHub lance les tests à chaque push.
 
-- Réponses : validées côté serveur contre la **version figée** de l'étude (`study_versions.snapshot`).
-- Étude anonyme : aucune identité stockée, aucune IP stockée. Étude identifiée : identité dans `participant_identifiers` (table séparée) + consentement.
-- Statistiques masquées sous `DOBI_MIN_GROUP` réponses (1 pour tester, 5 en production).
-- Rôles : owner, admin, editor, surveyor, analyst (voir `app/Policies`).
-- Limitation de débit : connexion 5/min, soumission publique 10/min, API 120/min.
-- Questions de type « fichier » désactivées (cahier des charges §9).
+## Déploiement
 
-## Pas encore inclus
+- **Front** : Vercel redéploie automatiquement à chaque push sur `main`.
+- **API** (Alwaysdata) : en SSH dans le dossier du projet.
 
-Vérification de l'e-mail, invitation par e-mail d'une personne non inscrite, export `.xlsx` (le CSV s'ouvre dans Excel),
-traductions françaises des messages de validation Laravel, tests Pest/PHPUnit complets, mode hors ligne/PWA.
+```bash
+git pull origin main
+composer install --no-dev --optimize-autoloader
+php artisan migrate --force
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+Contrôle rapide : `curl -i https://dobi.alwaysdata.net/api/v1/ping`. Avant une mise à jour qui change la base, faire une sauvegarde.
+
+## Organisation du code (API)
+
+```
+app/Http/Controllers/Api/V1   contrôleurs de l'API
+app/Policies                  droits par rôle
+app/Services                  logique des questionnaires (versions, import/export)
+app/Support                   modèles de questionnaires intégrés
+database/migrations           structure de la base
+tests/Feature                 tests de l'API
+```
+
+Un questionnaire est versionné : chaque publication fige une version, et les réponses restent rattachées à la version à laquelle elles ont répondu.
+
+## Limites connues
+
+- Les résultats n'affichent que les questions de la version actuelle du questionnaire.
+- Les modèles ne peuvent pas encore être renommés ni partagés entre organisations.
+- Une réponse envoyée hors ligne n'est attribuée à un enquêteur que s'il est connecté au moment de l'envoi.
+
+## Auteur
+
+Osiax Tcheoubi, Licence Professionnelle en Informatique de Gestion, IUT de Parakou (Bénin).
