@@ -17,7 +17,7 @@ class ParticipantController extends Controller
     /** Participation de chaque étude de l'espace (chiffres uniquement, aucune donnée personnelle). */
     public function overview(Organization $organization): JsonResponse
     {
-        $this->authorize('view', $organization);
+        $this->authorize('viewWorkspace', $organization);
 
         $studies = $organization->studies()->withCount('responses')->withMax('responses', 'submitted_at')
             ->latest()->get()

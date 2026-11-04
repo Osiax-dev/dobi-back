@@ -55,6 +55,7 @@ class PublicStudyController extends Controller
                 'geographic_zone' => $study->geographic_zone,
                 'collection_mode' => $study->collection_mode,
                 'privacy_mode' => $study->privacy_mode,
+                'one_response_per_person' => (bool) $study->one_response_per_person,
                 'ends_at' => $study->ends_at,
                 'organization' => ['name' => $study->organization->display_name, 'slug' => $study->organization->slug],
             ],
@@ -62,6 +63,15 @@ class PublicStudyController extends Controller
             'version' => $version->version_number,
             'questionnaire' => $version->snapshot,
         ]);
+    }
+
+    /** Collecte par un enquêteur connecté : même validation que le public, réponse rattachée à l'enquêteur. */
+    public function collect(Request $request, string $slug): JsonResponse
+    {
+        $this->authorize('collect', $this->findOpenStudy($slug));
+        $request->attributes->set('collected_by', $request->user()->id);
+
+        return $this->submit($request, $slug);
     }
 
     public function submit(Request $request, string $slug): JsonResponse
@@ -99,6 +109,18 @@ class PublicStudyController extends Controller
             return response()->json(['message' => 'Réponse déjà enregistrée.', 'receipt' => $existing->uuid], 200);
         }
 
+        // Une seule réponse par personne : fiable en mode identifié (même adresse e-mail), impossible à garantir en mode anonyme.
+        if ($identified && $study->one_response_per_person) {
+            $already = DB::table('participant_identifiers as p')
+                ->join('responses as r', 'r.id', '=', 'p.response_id')
+                ->where('r.study_id', $study->id)
+                ->whereRaw('LOWER(p.email) = ?', [mb_strtolower(trim((string) $request->input('participant.email')))])
+                ->exists();
+            if ($already) {
+                return response()->json(['message' => 'Cette adresse e-mail a déjà répondu à cette étude. Une seule réponse par personne est acceptée.', 'code' => 'already_responded'], 409);
+            }
+        }
+
         // Le participant répond à la version qu'il a vue, même si une nouvelle a été publiée depuis.
         $version = $study->currentVersion;
         if ($request->filled('version')) {
@@ -125,6 +147,7 @@ class PublicStudyController extends Controller
                 'study_id' => $study->id,
                 'study_version_id' => $version->id,
                 'client_token' => $token ?: null,
+                'collected_by' => $request->attributes->get('collected_by'),
                 'status' => 'complete',
                 'submitted_at' => $now,
             ]);

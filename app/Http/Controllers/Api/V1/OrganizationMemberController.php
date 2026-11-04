@@ -15,41 +15,11 @@ class OrganizationMemberController extends Controller
 {
     public function index(Organization $organization): JsonResponse
     {
-        $this->authorize('view', $organization);
+        $this->authorize('viewWorkspace', $organization);
 
         return response()->json(['data' => $organization->members()->get()->map(fn ($u) => [
             'id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'role' => $u->pivot->role,
         ])]);
-    }
-
-    /** Ajoute un utilisateur déjà inscrit (l'invitation par e-mail viendra dans une phase ultérieure). */
-    public function store(Request $request, Organization $organization): JsonResponse
-    {
-        $this->authorize('manageMembers', $organization);
-
-        if ($organization->type === 'personal') {
-            return response()->json(['message' => 'Un espace personnel n\'a pas de membres. Créez une organisation pour travailler en équipe.'], 422);
-        }
-
-        $data = $request->validate([
-            'email' => ['required', 'email', 'exists:users,email'],
-            'role' => ['required', Rule::in(Roles::ASSIGNABLE)],
-        ]);
-
-        if ($data['role'] === Roles::ADMIN && $request->user()->roleIn($organization) !== Roles::OWNER) {
-            abort(403, 'Seul le propriétaire peut nommer un administrateur.');
-        }
-
-        $user = User::where('email', $data['email'])->firstOrFail();
-
-        if ($organization->members()->wherePivot('user_id', $user->id)->exists()) {
-            return response()->json(['message' => 'Cet utilisateur est déjà membre.'], 422);
-        }
-
-        $organization->members()->attach($user->id, ['role' => $data['role']]);
-        AuditLogger::log($request->user(), 'member.added', $user, $organization->id, ['role' => $data['role']]);
-
-        return response()->json(['id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'role' => $data['role']], 201);
     }
 
     public function update(Request $request, Organization $organization, User $user): JsonResponse

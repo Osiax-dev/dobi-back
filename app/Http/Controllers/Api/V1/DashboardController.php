@@ -14,7 +14,7 @@ class DashboardController extends Controller
     /** Synthèse d'un espace de travail : uniquement des chiffres calculés à partir des données réelles. */
     public function show(Organization $organization): JsonResponse
     {
-        $this->authorize('view', $organization);
+        $this->authorize('viewWorkspace', $organization);
 
         $studyIds = $organization->studies()->select('id');
         $responses = fn () => Submission::whereIn('study_id', $studyIds);

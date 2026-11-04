@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
         $password = config('dobi.admin_password') ?: Str::password(14, symbols: false);
 
         $user = User::create(['name' => 'Administrateur DOBI', 'email' => $email, 'password' => $password]);
+        $user->forceFill(['email_verified_at' => now()])->save();
         Organization::createFor($user, 'Espace personnel', null, 'personal', $user->name);
 
         $this->command?->info("Compte créé : $email");

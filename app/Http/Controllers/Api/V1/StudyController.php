@@ -35,7 +35,7 @@ class StudyController extends Controller
 
     public function index(Request $request, Organization $organization): JsonResponse
     {
-        $this->authorize('view', $organization);
+        $this->authorize('viewWorkspace', $organization);
 
         $query = $organization->studies()->withCount('responses')->latest();
         if ($request->filled('status')) {
@@ -196,6 +196,7 @@ class StudyController extends Controller
             'ends_at' => ['nullable', 'date'],
             'collection_mode' => ['sometimes', Rule::in(['classic', 'conversational'])],
             'privacy_mode' => ['sometimes', Rule::in(['anonymous', 'identified'])],
+            'one_response_per_person' => ['sometimes', 'boolean'],
         ];
     }
 

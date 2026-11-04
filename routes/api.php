@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AnalyticsController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CollectController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\ExportController;
 use App\Http\Controllers\Api\V1\OrganizationController;
@@ -10,7 +11,10 @@ use App\Http\Controllers\Api\V1\OrganizationInvitationController;
 use App\Http\Controllers\Api\V1\ParticipantController;
 use App\Http\Controllers\Api\V1\PublicStudyController;
 use App\Http\Controllers\Api\V1\QuestionnaireController;
+use App\Http\Controllers\Api\V1\StudyAssignmentController;
 use App\Http\Controllers\Api\V1\StudyController;
+use App\Http\Controllers\Api\V1\TemplateController;
+use App\Http\Middleware\EnsureEmailVerified;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -25,6 +29,9 @@ Route::prefix('v1')->group(function () {
             Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
             Route::post('reset-password', [AuthController::class, 'resetPassword']);
         });
+        Route::get('email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])->name('verification.verify');
+        Route::post('email/resend', [AuthController::class, 'resendVerification'])->middleware('throttle:verification');
+        Route::get('email/change/{id}', [AuthController::class, 'confirmEmailChange'])->name('email.change.confirm');
         Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
     });
 
@@ -38,20 +45,24 @@ Route::prefix('v1')->group(function () {
     });
 
     // ---- Espace connecté ----
-    Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
+    Route::middleware(['auth:sanctum', EnsureEmailVerified::class, 'throttle:api'])->group(function () {
         Route::post('invitations/{token}/accept', [OrganizationInvitationController::class, 'accept']);
         Route::get('me', [AuthController::class, 'me']);
         Route::put('me', [AuthController::class, 'updateMe']);
+        Route::post('me/logout-others', [AuthController::class, 'logoutOthers']);
+        Route::put('me/email', [AuthController::class, 'requestEmailChange'])->middleware('throttle:verification');
+        Route::delete('me', [AuthController::class, 'destroyMe']);
 
         // Organisations et membres
         Route::get('organizations', [OrganizationController::class, 'index']);
         Route::post('organizations', [OrganizationController::class, 'store']);
         Route::get('organizations/{organization}', [OrganizationController::class, 'show']);
         Route::put('organizations/{organization}', [OrganizationController::class, 'update']);
+        Route::post('organizations/{organization}/leave', [OrganizationController::class, 'leave']);
+        Route::post('organizations/{organization}/transfer', [OrganizationController::class, 'transfer']);
 
         Route::get('organizations/{organization}/dashboard', [DashboardController::class, 'show']);
         Route::get('organizations/{organization}/members', [OrganizationMemberController::class, 'index']);
-        Route::post('organizations/{organization}/members', [OrganizationMemberController::class, 'store']);
         Route::get('organizations/{organization}/invitations', [OrganizationInvitationController::class, 'index']);
         Route::post('organizations/{organization}/invitations', [OrganizationInvitationController::class, 'store']);
         Route::delete('organizations/{organization}/invitations/{invitation}', [OrganizationInvitationController::class, 'destroy']);
@@ -85,6 +96,19 @@ Route::prefix('v1')->group(function () {
         Route::get('studies/{study}/participants', [ParticipantController::class, 'index']);
         Route::delete('studies/{study}/participants/{uuid}', [ParticipantController::class, 'destroy']);
         Route::get('studies/{study}/analytics', [AnalyticsController::class, 'show']);
+
+        // Modèles de formulaires
+        Route::get('organizations/{organization}/templates', [TemplateController::class, 'index']);
+        Route::post('organizations/{organization}/studies/from-template', [TemplateController::class, 'createStudy']);
+        Route::post('studies/{study}/template', [TemplateController::class, 'store']);
+        Route::delete('templates/{template}', [TemplateController::class, 'destroy']);
+
+        // Collecte par les enquêteurs et suivi
+        Route::get('collect/studies', [CollectController::class, 'studies']);
+        Route::post('collect/studies/{slug}/responses', [PublicStudyController::class, 'collect']);
+        Route::get('studies/{study}/collectors', [CollectController::class, 'collectors']);
+        Route::get('studies/{study}/assignments', [StudyAssignmentController::class, 'index']);
+        Route::put('studies/{study}/assignments', [StudyAssignmentController::class, 'update']);
         Route::get('studies/{study}/exports', [ExportController::class, 'index']);
     });
 });

@@ -11,8 +11,27 @@ class Study extends Model
     protected $fillable = [
         'organization_id', 'created_by', 'title', 'slug', 'description', 'objective', 'category',
         'target_population', 'geographic_zone', 'starts_at', 'ends_at', 'collection_mode',
-        'privacy_mode', 'status', 'status_before_archive', 'current_version_id', 'published_at',
+        'privacy_mode', 'one_response_per_person', 'status', 'status_before_archive', 'current_version_id', 'published_at',
     ];
+
+    /** Enquêteurs affectés à l'étude (vide = tous les enquêteurs de l'espace). */
+    public function collectors(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'study_collectors');
+    }
+
+    /** Identifiants des enquêteurs affectés qui sont toujours enquêteurs de l'espace. Tableau vide = pas de restriction. */
+    public function assignedSurveyorIds(): array
+    {
+        return \Illuminate\Support\Facades\DB::table('study_collectors as sc')
+            ->join('organization_members as om', function ($join) {
+                $join->on('om.user_id', '=', 'sc.user_id')
+                    ->where('om.organization_id', $this->organization_id)
+                    ->where('om.role', 'surveyor');
+            })
+            ->where('sc.study_id', $this->id)
+            ->pluck('sc.user_id')->map(fn ($id) => (int) $id)->all();
+    }
 
     protected $appends = ['public_url'];
 
@@ -22,6 +41,7 @@ class Study extends Model
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
             'published_at' => 'datetime',
+            'one_response_per_person' => 'boolean',
         ];
     }
 

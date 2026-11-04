@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Study;
+use App\Models\User;
 use App\Support\AuditLogger;
 use App\Support\ResponseFilters;
 use App\Support\XlsxWriter;
@@ -32,11 +33,13 @@ class ExportController extends Controller
         if ($withIdentity) {
             array_push($header, 'nom', 'email', 'telephone');
         }
+        $header[] = 'enqueteur';
+        $collectors = User::whereIn('id', $study->responses()->whereNotNull('collected_by')->distinct()->pluck('collected_by'))->pluck('name', 'id');
 
         AuditLogger::log($request->user(), 'study.exported', $study, $study->organization_id, ['identity' => $withIdentity, 'format' => $format]);
 
         $isCsv = $format === 'csv';
-        $rows = function () use ($request, $study, $questions, $withIdentity, $isCsv) {
+        $rows = function () use ($request, $study, $questions, $withIdentity, $isCsv, $collectors) {
             $query = ResponseFilters::apply($study->responses(), $request)->with($withIdentity ? ['answers', 'participant'] : ['answers']);
             foreach ($query->lazyById(500) as $submission) {
                 $answers = $submission->answers->keyBy('question_id');
@@ -48,6 +51,7 @@ class ExportController extends Controller
                     $p = $submission->participant;
                     array_push($row, ...($p ? [$this->text($p->full_name, $isCsv), $this->text($p->email, $isCsv), $this->text((string) $p->phone, $isCsv)] : ['', '', '']));
                 }
+                $row[] = $this->text($submission->collected_by ? ($collectors[$submission->collected_by] ?? 'Ancien membre') : 'Lien public', $isCsv);
                 yield $row;
             }
         };

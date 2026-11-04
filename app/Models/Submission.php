@@ -11,7 +11,7 @@ class Submission extends Model
 {
     protected $table = 'responses';
 
-    protected $fillable = ['uuid', 'client_token', 'study_id', 'study_version_id', 'status', 'submitted_at'];
+    protected $fillable = ['uuid', 'client_token', 'study_id', 'study_version_id', 'status', 'submitted_at', 'collected_by'];
 
     protected function casts(): array
     {

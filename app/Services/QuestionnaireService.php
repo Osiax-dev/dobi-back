@@ -176,4 +176,60 @@ class QuestionnaireService
             return $copy;
         });
     }
+
+    /** Questionnaire sous forme de modèle : étapes, questions, choix et conditions (identifiants locaux, aucune réponse). */
+    public function exportTree(Study $study): array
+    {
+        return $this->snapshot($study);
+    }
+
+    /** Crée les étapes, questions, choix et conditions d'un modèle dans une étude (identifiants recréés). */
+    public function applyTree(Study $study, array $tree): void
+    {
+        DB::transaction(function () use ($study, $tree) {
+            $sectionMap = [];
+            foreach ($tree['sections'] ?? [] as $s) {
+                $sectionMap[$s['id']] = $study->sections()->create([
+                    'title' => $s['title'], 'description' => $s['description'] ?? null, 'position' => $s['position'] ?? 0,
+                ])->id;
+            }
+
+            $questionMap = [];
+            foreach ($tree['questions'] ?? [] as $q) {
+                $new = $study->questions()->create([
+                    'section_id' => ! empty($q['section_id']) ? ($sectionMap[$q['section_id']] ?? null) : null,
+                    'type' => $q['type'], 'label' => $q['label'], 'description' => $q['description'] ?? null,
+                    'required' => (bool) ($q['required'] ?? false), 'position' => $q['position'] ?? 0,
+                    'settings' => (array) ($q['settings'] ?? []),
+                ]);
+                $questionMap[$q['id']] = $new->id;
+                foreach (array_values($q['options'] ?? []) as $i => $o) {
+                    $new->options()->create(['label' => $o['label'], 'value' => $o['value'], 'position' => $i + 1]);
+                }
+            }
+
+            foreach ($tree['questions'] ?? [] as $q) {
+                foreach ($q['rules'] ?? [] as $r) {
+                    if (isset($questionMap[$r['source_question_id']])) {
+                        Question::find($questionMap[$q['id']])->rules()->create([
+                            'source_question_id' => $questionMap[$r['source_question_id']],
+                            'operator' => $r['operator'], 'value' => $r['value'] ?? null,
+                        ]);
+                    }
+                }
+            }
+
+            foreach ($tree['sections'] ?? [] as $s) {
+                foreach ($s['rules'] ?? [] as $r) {
+                    if (isset($sectionMap[$s['id']], $questionMap[$r['source_question_id']])) {
+                        SectionRule::create([
+                            'section_id' => $sectionMap[$s['id']],
+                            'source_question_id' => $questionMap[$r['source_question_id']],
+                            'operator' => $r['operator'], 'value' => $r['value'] ?? null,
+                        ]);
+                    }
+                }
+            }
+        });
+    }
 }
