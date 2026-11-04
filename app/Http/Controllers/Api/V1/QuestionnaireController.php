@@ -262,12 +262,25 @@ class QuestionnaireController extends Controller
         }
 
         if (Answer::where('question_id', $question->id)->exists()) {
-            foreach (self::COMPATIBLE_TYPES as $family) {
-                if (in_array($question->type, $family, true) && in_array($newType, $family, true)) {
-                    return;
+            $labels = [
+                'short_text' => 'Réponse courte', 'long_text' => 'Réponse longue', 'integer' => 'Nombre entier', 'decimal' => 'Nombre décimal',
+                'number' => 'Nombre', 'single_choice' => 'Choix unique', 'dropdown' => 'Liste déroulante', 'multiple_choice' => 'Choix multiple',
+                'yes_no' => 'Oui / Non', 'date' => 'Date', 'time' => 'Heure', 'datetime' => 'Date et heure', 'scale' => 'Échelle de notation',
+                'location' => 'Lieu / adresse', 'geolocation' => 'Position GPS', 'note' => 'Texte informatif',
+            ];
+            $family = [];
+            foreach (self::COMPATIBLE_TYPES as $f) {
+                if (in_array($question->type, $f, true)) {
+                    if (in_array($newType, $f, true)) {
+                        return;
+                    }
+                    $family = array_values(array_diff($f, [$question->type]));
                 }
             }
-            throw ValidationException::withMessages(['type' => ['Cette question a déjà reçu des réponses : son type ne peut être changé que vers un type compatible (texte court ou long, nombres, choix unique ou liste). Sinon, ajoutez une nouvelle question.']]);
+            $from = $labels[$question->type] ?? $question->type;
+            $to = $labels[$newType] ?? $newType;
+            $possible = $family ? 'Types possibles : '.implode(', ', array_map(fn ($t) => $labels[$t] ?? $t, $family)).'. ' : 'Son type ne peut plus être changé. ';
+            throw ValidationException::withMessages(['type' => ["Cette question a déjà reçu des réponses de type « $from » : elle ne peut pas devenir « $to ». {$possible}Sinon, ajoutez une nouvelle question."]]);
         }
     }
 

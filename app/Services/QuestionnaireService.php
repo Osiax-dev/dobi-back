@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Answer;
 use App\Models\Question;
 use App\Models\Section;
 use App\Models\SectionRule;
@@ -29,9 +30,13 @@ class QuestionnaireService
     /** Représentation complète pour le constructeur (brouillon). */
     public function tree(Study $study): array
     {
+        $questions = $this->orderedQuestions($study);
+        // Questions qui ont déjà reçu des réponses : leur type ne peut plus changer librement.
+        $answered = Answer::whereIn('question_id', $questions->pluck('id'))->distinct()->pluck('question_id')->flip();
+
         return [
             'sections' => $study->sections()->with('rules')->get()->map(fn (Section $s) => $this->sectionArray($s))->all(),
-            'questions' => $this->orderedQuestions($study)->map(fn (Question $q) => $this->questionArray($q))->all(),
+            'questions' => $questions->map(fn (Question $q) => $this->questionArray($q) + ['has_answers' => $answered->has($q->id)])->all(),
         ];
     }
 
