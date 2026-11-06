@@ -1,101 +1,124 @@
-# DOBI
+# DOBI — API (Laravel)
 
-DOBI est une plateforme pour créer des questionnaires, les publier, collecter les réponses et les analyser. Le projet est né d'un besoin simple : pouvoir mener une enquête sur le terrain, même avec une connexion instable, sans dépendre d'un outil étranger payant.
+DOBI est une plateforme pour **créer, publier, collecter et analyser des questionnaires** (études). Ce dépôt est l'**API** ; l'interface React est dans le dépôt `dobi-front`.
 
-Le projet est en deux parties :
-
-- **API** : Laravel 13 (PHP 8.4), base MariaDB/MySQL, authentification par jeton (Sanctum). Dépôt actuel.
-- **Front** : React 18 + Vite + Tailwind, hébergé sur Vercel. Il parle à l'API en JSON.
-
-Production : front sur https://dobi-sand.vercel.app, API sur https://dobi.alwaysdata.net.
+- Production : `https://dobi.alwaysdata.net` (Alwaysdata, MariaDB)
+- Front : `https://dobi-sand.vercel.app` (Vercel)
 
 ## Ce que fait DOBI
 
-- Création de questionnaires par étapes, avec 15 types de questions, des règles d'affichage (une étape peut dépendre d'une réponse) et l'option « Autre ».
-- Publication par lien public ou QR code, avec réponse unique par personne si on le souhaite.
-- Collecte sur le terrain par des enquêteurs, avec file d'attente hors ligne (les réponses sont envoyées au retour du réseau).
-- Résultats, tableau de bord et suivi de la participation ; export CSV et Excel avec une colonne « Enquêteur ».
-- Espaces de travail (organisations) avec cinq rôles : propriétaire, administrateur, éditeur, enquêteur, analyste. Chaque rôle n'accède qu'à ce qui le concerne.
-- Invitations de membres par e-mail, attribution des enquêteurs par étude, transfert de propriété d'une organisation.
-- Modèles de questionnaires réutilisables (trois modèles intégrés : satisfaction, ménages, événement).
-- Compte : inscription avec confirmation de l'e-mail, mot de passe oublié, changement d'adresse, déconnexion des autres appareils, suppression du compte.
+- Comptes, vérification de l'e-mail, organisations, membres et invitations, rôles.
+- Questionnaires par étapes (sections), nombreux types de questions, règles d'affichage, versions publiées figées.
+- Collecte publique (lien, QR code), collecte par enquêteurs, études anonymes ou identifiées avec consentement.
+- Résultats et statistiques, exports, modèles d'études, notifications, historique d'activité.
+- **Rapports & synthèses** : génération depuis les vraies données, éditeur, exports PDF et Word, historique, comparaisons, assistance IA (voir `docs/RAPPORTS.md`).
 
-## Lancer le projet en local
+## Technologies
 
-### API
+PHP 8.3 ou plus · Laravel 13 · Laravel Sanctum (jetons d'API) · MySQL / MariaDB · PHPUnit.
+L'extension PHP `zip` est nécessaire (export Word).
 
-Prérequis : PHP 8.4, Composer, MySQL ou MariaDB.
+## Installation en local
 
 ```bash
+git clone https://github.com/Osiax-dev/dobi-back.git
+cd dobi-back
 composer install
 cp .env.example .env
 php artisan key:generate
-# renseigner la base de données dans .env, puis :
+```
+
+Ouvre `.env` et règle la base de données (voir le tableau plus bas), puis :
+
+```bash
 php artisan migrate
+php artisan db:seed        # crée le compte administrateur (DOBI_ADMIN_EMAIL / DOBI_ADMIN_PASSWORD)
 php artisan serve --port=8001
 ```
 
-Variables importantes du `.env` :
+L'API répond alors sur `http://127.0.0.1:8001/api/v1` (test : `GET /api/v1/ping`).
+Le front attend cette adresse par défaut.
+
+## Variables d'environnement
 
 | Variable | Rôle |
 |---|---|
-| `APP_URL` | URL de l'API (sert aux liens signés des e-mails) |
-| `FRONTEND_URL` | URL du front, sans `/` final (liens des e-mails et CORS) |
-| `MAIL_MAILER` et `MAIL_*` | Envoi des e-mails (`log` en local, `smtp` en production) |
-| `TRUSTED_PROXIES` | À mettre à `*` derrière un proxy en production |
+| `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` | base de données |
+| `APP_URL` | adresse de l'API |
+| `FRONTEND_URL` | adresse(s) du front, séparées par des virgules (sert aux liens des e-mails et au CORS) |
+| `MAIL_*` | envoi des e-mails (`MAIL_MAILER=log` en local : les e-mails s'écrivent dans `storage/logs`) |
+| `DOBI_MIN_GROUP` | nombre minimum de réponses pour afficher une statistique (1 pour tester, 5 en production) |
+| `DOBI_TOKEN_DAYS` | durée de vie des jetons de connexion |
+| `DOBI_ADMIN_EMAIL`, `DOBI_ADMIN_PASSWORD` | compte créé par `db:seed` (choisis un vrai mot de passe) |
+| `GROQ_API_KEY`, `GROQ_MODEL` | assistance IA par Groq (gratuit avec limites). Modèle par défaut : `openai/gpt-oss-120b` |
+| `ANTHROPIC_API_KEY`, `DOBI_AI_MODEL` | assistance IA par Anthropic (alternative) |
+| `DOBI_AI_PROVIDER` | `groq` ou `anthropic` pour forcer le choix (par défaut : Groq si `GROQ_API_KEY` existe) |
+| `DOBI_AI_TIMEOUT` | délai maximum d'une demande à l'IA, en secondes (40 par défaut) |
 
-Ne jamais ajouter le `.env` au dépôt.
-
-### Front
-
-Prérequis : Node 22.
-
-```bash
-npm install
-# créer un fichier .env avec :
-# VITE_API_URL=http://127.0.0.1:8001/api/v1
-npm run dev
-```
+Sans clé d'IA, l'assistance est simplement désactivée ; le reste fonctionne. Ne mets jamais une clé dans Git ni dans le front.
 
 ## Tests
 
 ```bash
 php artisan config:clear
-php artisan test      # API : tests sur SQLite en mémoire
-
-npm test              # front
+php artisan test
+php artisan test --filter=ReportsTest      # un seul fichier
 ```
 
-Les tests de l'API refusent de tourner sur une autre base que SQLite, pour ne pas toucher aux vraies données. Une intégration continue GitHub lance les tests à chaque push.
+Les tests utilisent des appels réseau simulés : ils ne contactent jamais Groq ni Anthropic, quelle que soit ta configuration locale.
+Une collection Postman (`DOBI.postman_collection.json`) couvre l'API de base ; les routes des rapports n'y figurent pas encore.
 
-## Déploiement
+## Rôles
 
-- **Front** : Vercel redéploie automatiquement à chaque push sur `main`.
-- **API** (Alwaysdata) : en SSH dans le dossier du projet.
+`owner`, `admin`, `editor`, `surveyor`, `analyst` (règles dans `app/Policies`).
+Les rapports sont réservés au propriétaire, à l'administrateur et à l'analyste de l'organisation.
+
+## Règles importantes
+
+- Les réponses sont validées côté serveur contre la **version figée** de l'étude (`study_versions.snapshot`).
+- Étude anonyme : aucune identité ni adresse IP stockée. Étude identifiée : identité dans une table séparée, avec consentement.
+- Les statistiques sont masquées sous `DOBI_MIN_GROUP` réponses, pour protéger la confidentialité.
+- Les données sont isolées entre organisations.
+- Limitation de débit : connexion, soumission publique et API sont limitées par minute.
+- Les réponses des participants ne sont jamais modifiées par les rapports.
+
+## Rapports & synthèses
+
+Routes, historique, aperçu, comparaisons et configuration de l'IA : voir [`docs/RAPPORTS.md`](docs/RAPPORTS.md).
+
+## Structure
+
+```
+app/Http/Controllers/Api/V1/   contrôleurs de l'API
+app/Models/                    modèles
+app/Policies/                  droits d'accès
+app/Services/                  logique métier (questionnaire, rapports, IA)
+app/Support/                   classes utilitaires pures (mise en page, Word, prompts IA)
+database/migrations/           tables
+routes/api.php                 routes /api/v1
+tests/                         tests PHPUnit
+docs/                          documentation
+```
+
+## Déploiement (Alwaysdata)
+
+Le dossier du projet sur le serveur est `~/dobi-back`. Après un `git push`, en SSH :
 
 ```bash
-git pull origin main
-composer install --no-dev --optimize-autoloader
-php artisan migrate --force
+cd ~/dobi-back
+git status                    # doit être propre
+git pull
+php artisan migrate --force   # seulement s'il y a de nouvelles migrations
 php artisan config:cache
 php artisan route:cache
-php artisan view:cache
 ```
 
-Contrôle rapide : `curl -i https://dobi.alwaysdata.net/api/v1/ping`. Avant une mise à jour qui change la base, faire une sauvegarde.
+Fais une sauvegarde de la base avant une migration. Ne modifie le `.env` du serveur qu'à la main.
 
-## Organisation du code (API)
+## Notes
 
-```
-app/Http/Controllers/Api/V1   contrôleurs de l'API
-app/Policies                  droits par rôle
-app/Services                  logique des questionnaires (versions, import/export)
-app/Support                   modèles de questionnaires intégrés
-database/migrations           structure de la base
-tests/Feature                 tests de l'API
-```
-
-Un questionnaire est versionné : chaque publication fige une version, et les réponses restent rattachées à la version à laquelle elles ont répondu.
+- Sans nom de domaine propre (SPF, DKIM, DMARC), les e-mails envoyés depuis `alwaysdata.net` peuvent arriver dans les spams.
+- Les questions de type « fichier » sont désactivées.
 
 ## Limites connues
 

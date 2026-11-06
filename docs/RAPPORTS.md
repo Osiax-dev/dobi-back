@@ -30,10 +30,10 @@ Couverture, Informations générales, Contexte, Objectifs, Méthodologie, Échan
 - Les calculs (chiffres) ne changent pas : ils restent figés à la génération.
 
 ## Comparaisons
-Jusqu'à **3 questions** (choix unique, liste déroulante, Oui/Non) pour comparer les résultats par groupe. Les groupes de moins de `DOBI_MIN_GROUP_SIZE` réponses sont masqués. Anciens rapports (une seule comparaison) toujours lisibles.
+Jusqu'à **3 questions** (choix unique, liste déroulante, Oui/Non) pour comparer les résultats par groupe. Les groupes de moins de `DOBI_MIN_GROUP` réponses sont masqués. Anciens rapports (une seule comparaison) toujours lisibles.
 
 ## Assistance IA (facultative)
-Variables d'environnement : `ANTHROPIC_API_KEY` (absente = IA désactivée), `DOBI_AI_MODEL` (défaut `claude-sonnet-5-5`), `DOBI_AI_TIMEOUT` (40 s). Seules des données agrégées sont envoyées (jamais les réponses libres « Autre » ni les identités).
+Fournisseur : Groq (gratuit avec limites) ou Anthropic. Variables : `GROQ_API_KEY` (+ `GROQ_MODEL`, défaut `llama-3.3-70b-versatile`) ou `ANTHROPIC_API_KEY` (+ `DOBI_AI_MODEL`) ; `DOBI_AI_PROVIDER=groq|anthropic` pour forcer. Sans clé, l’IA est désactivée. `DOBI_AI_TIMEOUT` (40 s).
 
 ## Déploiement
 ```
