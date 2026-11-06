@@ -28,7 +28,7 @@ class ReportAssistant
     /** @throws \RuntimeException si l'IA est injoignable ou répond de travers (le détail va dans les journaux, sans contenu). */
     public function suggest(Report $report, string $section, ?string $instructions = null, ?string $current = null): string
     {
-        $system = ReportAiPrompt::system();
+        $system = ReportAiPrompt::system($section);
         $user = ReportAiPrompt::user($report->content, $report->notes ?? [], $section, $instructions, $current);
         $http = Http::timeout((int) config('dobi.ai.timeout', 40))->connectTimeout(15)->acceptJson();
         // Certains réseaux ont un IPv6 cassé : PHP y reste bloqué jusqu'au délai. On force l'IPv4.
@@ -37,7 +37,7 @@ class ReportAssistant
         $response = self::groq()
             ? $http->withToken(self::apiKey())->post('https://api.groq.com/openai/v1/chat/completions', [
                 'model' => (string) config('dobi.ai.groq_model'),
-                'max_completion_tokens' => 2500, // les modèles « gpt-oss » réfléchissent avant de répondre : on leur laisse la place
+                'max_completion_tokens' => 3500, // les modèles « gpt-oss » réfléchissent avant de répondre : on leur laisse la place
                 'temperature' => 0.4,
                 'messages' => [['role' => 'system', 'content' => $system], ['role' => 'user', 'content' => $user]],
             ] + (str_contains((string) config('dobi.ai.groq_model'), 'gpt-oss') ? ['reasoning_effort' => 'low'] : []))
