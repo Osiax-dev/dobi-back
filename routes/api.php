@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\ExportController;
 use App\Http\Controllers\Api\V1\OrganizationController;
 use App\Http\Controllers\Api\V1\OrganizationMemberController;
 use App\Http\Controllers\Api\V1\OrganizationInvitationController;
+use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\ParticipantController;
 use App\Http\Controllers\Api\V1\PublicStudyController;
 use App\Http\Controllers\Api\V1\QuestionnaireController;
@@ -102,6 +103,20 @@ Route::prefix('v1')->group(function () {
         Route::get('studies/{study}/participants', [ParticipantController::class, 'index']);
         Route::delete('studies/{study}/participants/{uuid}', [ParticipantController::class, 'destroy']);
         Route::get('studies/{study}/analytics', [AnalyticsController::class, 'show']);
+
+        // Rapports & synthèses
+        Route::get('studies/{study}/reports', [ReportController::class, 'index']);
+        Route::post('studies/{study}/reports', [ReportController::class, 'store'])->middleware('throttle:20,1');
+        Route::post('studies/{study}/reports/preview', [ReportController::class, 'preview'])->middleware('throttle:20,1');
+        Route::get('reports/{report}', [ReportController::class, 'show']);
+        Route::get('reports/{report}/revisions', [ReportController::class, 'revisions']);
+        Route::get('reports/{report}/revisions/{revision}', [ReportController::class, 'revision'])->whereNumber('revision');
+        Route::post('reports/{report}/revisions/{revision}/restore', [ReportController::class, 'restore'])->whereNumber('revision');
+        Route::get('reports/{report}/document', [ReportController::class, 'document']);
+        Route::post('reports/{report}/assist', [ReportController::class, 'assist'])->middleware('throttle:10,1');
+        Route::get('reports/{report}/export/docx', [ReportController::class, 'exportDocx'])->middleware('throttle:20,1');
+        Route::put('reports/{report}', [ReportController::class, 'update']);
+        Route::delete('reports/{report}', [ReportController::class, 'destroy']);
 
         // Modèles de formulaires
         Route::get('organizations/{organization}/templates', [TemplateController::class, 'index']);
